@@ -9,9 +9,9 @@ import math
 import pandas as pd
 
 # --- 1. PAGE LAYOUT ---
-st.set_page_config(page_title="AI Waste Scanner", page_icon="♻️", layout="centered")
+st.set_page_config(page_title="Sortify", page_icon="♻️", layout="centered")
 
-st.title("♻️ The Smart AI Waste Scanner")
+st.title("♻️ Sortify")
 st.write(
     "Project support for **SDG 12**. "
     "Take a photo or upload an image to see which waste category it belongs to."
