@@ -8,26 +8,26 @@ import os
 import math
 import pandas as pd
 
-# --- 1. SEITEN-LAYOUT ---
-st.set_page_config(page_title="KI Müll-Scanner", page_icon="♻️", layout="centered")
+# --- 1. PAGE LAYOUT ---
+st.set_page_config(page_title="AI Waste Scanner", page_icon="♻️", layout="centered")
 
-st.title("♻️ Der smarte KI-Müll-Scanner")
+st.title("♻️ The Smart AI Waste Scanner")
 st.write(
-    "Projekt-Unterstützung für **SDG 12**. "
-    "Mach ein Foto oder lade ein Bild hoch, um zu sehen, in welche Tonne es gehört."
+    "Project support for **SDG 12**. "
+    "Take a photo or upload an image to see which waste category it belongs to."
 )
 
 MODEL_PATH = "muell_scanner_model_efficientnet.pth"
 
-# --- INTERNER DIAGNOSE-CHECK ---
-st.sidebar.header("⚙️ System-Status")
+# --- INTERNAL DIAGNOSTIC CHECK ---
+st.sidebar.header("⚙️ System Status")
 
 if os.path.exists(MODEL_PATH):
-    st.sidebar.success(f"Datei '{MODEL_PATH}' wurde im Ordner gefunden!")
+    st.sidebar.success(f"File '{MODEL_PATH}' was found in the project folder!")
 else:
-    st.sidebar.error(f"⚠️ Datei '{MODEL_PATH}' FEHLT im aktuellen Ordner!")
+    st.sidebar.error(f"⚠️ File '{MODEL_PATH}' is MISSING from the current folder!")
 
-# --- 2. SICHERES MODELL-LADEN ---
+# --- 2. SAFE MODEL LOADING ---
 @st.cache_resource
 def load_trained_model():
     model = models.efficientnet_b0()
@@ -49,49 +49,49 @@ model = None
 try:
     if os.path.exists(MODEL_PATH):
         model = load_trained_model()
-        st.sidebar.success("KI-Modell erfolgreich geladen!")
+        st.sidebar.success("AI model loaded successfully!")
     else:
         st.warning(
-            "Bitte lege deine '.pth'-Datei in den Projektordner, "
-            "um den Scanner freizuschalten."
+            "Please place your '.pth' model file in the project folder "
+            "to activate the scanner."
         )
 except Exception as e:
     st.error(
-        "❗ Fehler beim Laden des Modells. Das bedeutet meistens, dass der "
-        "Dateiname stimmt, das Modell in Colab aber mit einer anderen Architektur "
-        "(z.B. MobileNet statt EfficientNet) trainiert wurde."
+        "❗ Error while loading the model. This usually means that the filename "
+        "is correct, but the model was trained in Colab with a different architecture "
+        "(for example MobileNet instead of EfficientNet)."
     )
     st.exception(e)
 
-# --- 3. KLASSEN-MAPPING ---
-klassen_mapping = {
+# --- 3. CLASS MAPPING ---
+class_mapping = {
     0: {
-        "name": "Sondermüll / Gefahrgut ⚠️",
-        "tipp": "Wertstoffhof / Schadstoffsammelstelle.",
-        "station_type": "Recyclinghof"
+        "name": "Hazardous Waste ⚠️",
+        "tip": "Take it to a recycling center or hazardous waste collection point.",
+        "station_type": "Recycling Center"
     },
     1: {
-        "name": "Restmüll 🟤",
-        "tipp": "Graue Restmülltonne. Größere Mengen zum Recyclinghof.",
-        "station_type": "Recyclinghof"
+        "name": "Residual Waste 🟤",
+        "tip": "Use the grey residual waste bin. Larger amounts should go to a recycling center.",
+        "station_type": "Recycling Center"
     },
     2: {
-        "name": "Biomüll 🟢",
-        "tipp": "Grüne/braune Biotonne oder Kompost.",
-        "station_type": "Biotonne"
+        "name": "Organic Waste 🟢",
+        "tip": "Use the green/brown organic waste bin or compost.",
+        "station_type": "Organic Waste Bin"
     },
     3: {
-        "name": "Recyclebar ♻️",
-        "tipp": "Plastikflaschen, Dosen, Glas, Pappe und Papier.",
-        "station_type": "Recyclinghof"
+        "name": "Recyclable ♻️",
+        "tip": "Plastic bottles, cans, glass, cardboard, and paper.",
+        "station_type": "Recycling Center"
     }
 }
 
-# --- 4. DEMO-STANDORTE ---
+# --- 4. DEMO LOCATIONS ---
 district_points = {
-    "Innenstadt / Dellviertel": (51.4344, 6.7623),
-    "Duisburg-Nord": (51.4938, 6.7602),
-    "Duisburg-Süd": (51.3658, 6.7594),
+    "City Center / Dellviertel": (51.4344, 6.7623),
+    "Duisburg North": (51.4938, 6.7602),
+    "Duisburg South": (51.3658, 6.7594),
     "Rheinhausen": (51.4017, 6.7067),
     "Homberg / Ruhrort": (51.4538, 6.7130),
     "Meiderich / Beeck": (51.4655, 6.7756),
@@ -99,32 +99,32 @@ district_points = {
 
 recycling_stations = [
     {
-        "name": "Recyclinghof Nord (Demo)",
+        "name": "Recycling Center North (Demo)",
         "lat": 51.4890,
         "lon": 6.7630,
-        "accepts": ["Recyclinghof"],
-        "note": "Für Sondermüll, Elektrogeräte und größere Wertstoffe geeignet."
+        "accepts": ["Recycling Center"],
+        "note": "Suitable for hazardous waste, electronic devices, and larger recyclable items."
     },
     {
-        "name": "Recyclinghof Mitte (Demo)",
+        "name": "Recycling Center Central (Demo)",
         "lat": 51.4327,
         "lon": 6.7620,
-        "accepts": ["Recyclinghof"],
-        "note": "Zentraler Sammelpunkt für schwer einzuordnende Abfälle."
+        "accepts": ["Recycling Center"],
+        "note": "Central collection point for waste that is difficult to classify."
     },
     {
-        "name": "Recyclinghof Süd (Demo)",
+        "name": "Recycling Center South (Demo)",
         "lat": 51.3588,
         "lon": 6.7482,
-        "accepts": ["Recyclinghof"],
-        "note": "Sammelpunkt für südliche Stadtteile."
+        "accepts": ["Recycling Center"],
+        "note": "Collection point for southern districts."
     },
     {
-        "name": "Bioabfall-Sammelpunkt Innenstadt (Demo)",
+        "name": "Organic Waste Collection Point City Center (Demo)",
         "lat": 51.4372,
         "lon": 6.7714,
-        "accepts": ["Biotonne"],
-        "note": "Für Bioabfall im Alltag reicht normalerweise die eigene Biotonne."
+        "accepts": ["Organic Waste Bin"],
+        "note": "For everyday organic waste, the household organic bin is usually enough."
     },
 ]
 
@@ -145,14 +145,14 @@ def distance_km(start, station):
 
 
 def show_nearest_station(station_type):
-    st.markdown("### 📍 Nächste passende Sammelstelle")
+    st.markdown("### 📍 Nearest Suitable Collection Point")
     st.caption(
-        "Demo-Funktion: Für einen echten Einsatz sollten hier offizielle "
-        "Standorte und Öffnungszeiten der Stadt eingebunden werden."
+        "Demo feature: In a real deployment, official locations and opening hours "
+        "from the city should be integrated here."
     )
 
     district = st.selectbox(
-        "Wo bist du ungefähr?",
+        "Where are you approximately located?",
         list(district_points.keys())
     )
 
@@ -164,7 +164,7 @@ def show_nearest_station(station_type):
     ]
 
     if not matching_stations:
-        st.info("Für diese Kategorie ist normalerweise keine Sammelstelle nötig.")
+        st.info("For this category, a collection point is usually not required.")
         return
 
     nearest = min(
@@ -174,7 +174,7 @@ def show_nearest_station(station_type):
 
     dist = distance_km(user_location, nearest)
 
-    st.success(f"Nächster Punkt: {nearest['name']} ({dist:.1f} km Luftlinie)")
+    st.success(f"Nearest point: {nearest['name']} ({dist:.1f} km straight-line distance)")
     st.write(nearest["note"])
 
     map_data = pd.DataFrame([
@@ -190,30 +190,30 @@ def show_nearest_station(station_type):
         + "+Duisburg"
     )
 
-    st.link_button("Route / Standort in Google Maps öffnen", google_maps_url)
+    st.link_button("Open route / location in Google Maps", google_maps_url)
 
 
-# --- 5. OBERFLÄCHE ---
+# --- 5. USER INTERFACE ---
 if model is not None:
     input_method = st.radio(
-        "Bildquelle wählen:",
-        ["Kamera", "Datei hochladen"],
+        "Choose image source:",
+        ["Camera", "Upload file"],
         horizontal=True
     )
 
-    if input_method == "Kamera":
-        image_file = st.camera_input("Mach ein Foto vom Müllobjekt")
+    if input_method == "Camera":
+        image_file = st.camera_input("Take a photo of the waste item")
     else:
         image_file = st.file_uploader(
-            "Wähle ein Müll-Foto aus:",
+            "Choose a waste photo:",
             type=["jpg", "jpeg", "png"]
         )
 
     if image_file is not None:
         image = Image.open(image_file).convert("RGB")
-        st.image(image, caption="Ausgewähltes Foto", use_container_width=True)
+        st.image(image, caption="Selected photo", use_container_width=True)
 
-        with st.spinner("KI analysiert..."):
+        with st.spinner("AI is analyzing..."):
             transform = transforms.Compose([
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
@@ -230,23 +230,23 @@ if model is not None:
                 probabilities = torch.nn.functional.softmax(outputs, dim=1)
                 conf, predicted = torch.max(probabilities, 1)
 
-                klasse_id = predicted.item()
-                sicherheit = conf.item() * 100
+                class_id = predicted.item()
+                confidence = conf.item() * 100
 
-        ergebnis = klassen_mapping[klasse_id]
+        result = class_mapping[class_id]
 
-        st.markdown(f"### Ergebnis: **{ergebnis['name']}**")
-        st.info(f"💡 **Entsorgung:** {ergebnis['tipp']}")
-        st.write(f"Sicherheit: {sicherheit:.1f}%")
-        st.progress(int(sicherheit))
+        st.markdown(f"### Result: **{result['name']}**")
+        st.info(f"💡 **Disposal guidance:** {result['tip']}")
+        st.write(f"Confidence: {confidence:.1f}%")
+        st.progress(int(confidence))
 
-        if sicherheit < 60:
+        if confidence < 60:
             st.warning(
-                "Die KI ist sich nicht sehr sicher. Bitte prüfe das Ergebnis "
-                "oder mache ein neues Foto mit besserem Licht."
+                "The AI is not very confident. Please check the result "
+                "or take a new photo with better lighting."
             )
 
-        show_nearest_station(ergebnis["station_type"])
+        show_nearest_station(result["station_type"])
 
 else:
-    st.info("Die App wartet auf ein geladenes KI-Modell.")
+    st.info("The app is waiting for a loaded AI model.")
