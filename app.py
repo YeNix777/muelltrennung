@@ -5,6 +5,8 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.models as models
 import os
+import math
+import pandas as pd
 
 # --- 1. SEITEN-LAYOUT ---
 st.set_page_config(page_title="KI Müll-Scanner", page_icon="♻️", layout="centered")
@@ -28,12 +30,10 @@ else:
 # --- 2. SICHERES MODELL-LADEN ---
 @st.cache_resource
 def load_trained_model():
-    # Architektur exakt wie beim Training definieren
     model = models.efficientnet_b0()
     num_features = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_features, 4)
 
-    # Sicherer Import auf CPU
     state_dict = torch.load(
         MODEL_PATH,
         map_location=torch.device("cpu"),
@@ -44,7 +44,6 @@ def load_trained_model():
     model.eval()
     return model
 
-# Modell laden mit sichtbarem Fehler-Reporting
 model = None
 
 try:
@@ -68,23 +67,133 @@ except Exception as e:
 klassen_mapping = {
     0: {
         "name": "Sondermüll / Gefahrgut ⚠️",
-        "tipp": "Wertstoffhof / Schadstoffsammelstelle."
+        "tipp": "Wertstoffhof / Schadstoffsammelstelle.",
+        "station_type": "Recyclinghof"
     },
     1: {
         "name": "Restmüll 🟤",
-        "tipp": "Windeln, Plastikfolien, Hygienetücher, Keramik. Wird verbrannt."
+        "tipp": "Graue Restmülltonne. Größere Mengen zum Recyclinghof.",
+        "station_type": "Recyclinghof"
     },
     2: {
         "name": "Biomüll 🟢",
-        "tipp": "Grüne/braune Biotonne oder Kompost."
+        "tipp": "Grüne/braune Biotonne oder Kompost.",
+        "station_type": "Biotonne"
     },
     3: {
         "name": "Recyclebar ♻️",
-        "tipp": "Plastikflaschen, Dosen, Glas, Pappe und Papier."
+        "tipp": "Plastikflaschen, Dosen, Glas, Pappe und Papier.",
+        "station_type": "Recyclinghof"
     }
 }
 
-# --- 4. OBERFLÄCHE ---
+# --- 4. DEMO-STANDORTE ---
+district_points = {
+    "Innenstadt / Dellviertel": (51.4344, 6.7623),
+    "Duisburg-Nord": (51.4938, 6.7602),
+    "Duisburg-Süd": (51.3658, 6.7594),
+    "Rheinhausen": (51.4017, 6.7067),
+    "Homberg / Ruhrort": (51.4538, 6.7130),
+    "Meiderich / Beeck": (51.4655, 6.7756),
+}
+
+recycling_stations = [
+    {
+        "name": "Recyclinghof Nord (Demo)",
+        "lat": 51.4890,
+        "lon": 6.7630,
+        "accepts": ["Recyclinghof"],
+        "note": "Für Sondermüll, Elektrogeräte und größere Wertstoffe geeignet."
+    },
+    {
+        "name": "Recyclinghof Mitte (Demo)",
+        "lat": 51.4327,
+        "lon": 6.7620,
+        "accepts": ["Recyclinghof"],
+        "note": "Zentraler Sammelpunkt für schwer einzuordnende Abfälle."
+    },
+    {
+        "name": "Recyclinghof Süd (Demo)",
+        "lat": 51.3588,
+        "lon": 6.7482,
+        "accepts": ["Recyclinghof"],
+        "note": "Sammelpunkt für südliche Stadtteile."
+    },
+    {
+        "name": "Bioabfall-Sammelpunkt Innenstadt (Demo)",
+        "lat": 51.4372,
+        "lon": 6.7714,
+        "accepts": ["Biotonne"],
+        "note": "Für Bioabfall im Alltag reicht normalerweise die eigene Biotonne."
+    },
+]
+
+
+def distance_km(start, station):
+    lat1, lon1 = map(math.radians, start)
+    lat2, lon2 = math.radians(station["lat"]), math.radians(station["lon"])
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
+
+    return 6371 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def show_nearest_station(station_type):
+    st.markdown("### 📍 Nächste passende Sammelstelle")
+    st.caption(
+        "Demo-Funktion: Für einen echten Einsatz sollten hier offizielle "
+        "Standorte und Öffnungszeiten der Stadt eingebunden werden."
+    )
+
+    district = st.selectbox(
+        "Wo bist du ungefähr?",
+        list(district_points.keys())
+    )
+
+    user_location = district_points[district]
+
+    matching_stations = [
+        station for station in recycling_stations
+        if station_type in station["accepts"]
+    ]
+
+    if not matching_stations:
+        st.info("Für diese Kategorie ist normalerweise keine Sammelstelle nötig.")
+        return
+
+    nearest = min(
+        matching_stations,
+        key=lambda station: distance_km(user_location, station)
+    )
+
+    dist = distance_km(user_location, nearest)
+
+    st.success(f"Nächster Punkt: {nearest['name']} ({dist:.1f} km Luftlinie)")
+    st.write(nearest["note"])
+
+    map_data = pd.DataFrame([
+        {"lat": user_location[0], "lon": user_location[1]},
+        {"lat": nearest["lat"], "lon": nearest["lon"]},
+    ])
+
+    st.map(map_data, latitude="lat", longitude="lon", size=80)
+
+    google_maps_url = (
+        "https://www.google.com/maps/search/?api=1&query="
+        + nearest["name"].replace(" ", "+")
+        + "+Duisburg"
+    )
+
+    st.link_button("Route / Standort in Google Maps öffnen", google_maps_url)
+
+
+# --- 5. OBERFLÄCHE ---
 if model is not None:
     input_method = st.radio(
         "Bildquelle wählen:",
@@ -136,5 +245,8 @@ if model is not None:
                 "Die KI ist sich nicht sehr sicher. Bitte prüfe das Ergebnis "
                 "oder mache ein neues Foto mit besserem Licht."
             )
+
+        show_nearest_station(ergebnis["station_type"])
+
 else:
     st.info("Die App wartet auf ein geladenes KI-Modell.")
