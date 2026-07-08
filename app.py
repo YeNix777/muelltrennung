@@ -240,7 +240,7 @@ st.markdown(
         padding: .8rem;
     }
     .leader-row {
-        display: grid; grid-template-columns: 54px 1.4fr .7fr .7fr;
+        display: grid; grid-template-columns: 54px 52px 1.4fr .7fr .7fr;
         gap: .75rem; align-items: center; background: var(--panel);
         border: 1px solid var(--line); border-radius: 12px; padding: .8rem;
         margin-bottom: .55rem;
@@ -250,8 +250,21 @@ st.markdown(
         box-shadow: 0 8px 20px rgba(31,122,91,.1);
     }
     .leader-rank { font-size: 1.25rem; font-weight: 900; text-align: center; }
+    .team-pictogram, .friend-pictogram {
+        display: grid; place-items: center; flex: 0 0 auto;
+        width: 44px; height: 44px; border-radius: 12px;
+        background: #dff0e7; border: 1px solid #bcd8c8;
+        color: #155e47; font-size: 1.35rem; font-weight: 900;
+    }
     .leader-score { font-weight: 900; color: #155e47; }
     .leader-label { color: var(--muted); font-size: .72rem; font-weight: 750; }
+    .friend-card {
+        display: flex; align-items: center; gap: .75rem;
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 12px; padding: .7rem; min-height: 68px;
+    }
+    .friend-card strong { display: block; }
+    .online-dot { color: #178454; font-weight: 900; }
     .profile-header {
         display: grid; grid-template-columns: .45fr 1.55fr; gap: 1rem; align-items: center;
         background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
@@ -265,7 +278,7 @@ st.markdown(
         .hero, .dashboard, .guide-grid, .mission-grid, .map-list, .profile-header { grid-template-columns: 1fr; }
         .stat-grid { grid-template-columns: repeat(2, 1fr); }
         .hero-main h1 { font-size: 2.15rem; }
-        .leader-row { grid-template-columns: 42px 1fr .65fr; }
+        .leader-row { grid-template-columns: 38px 42px 1fr .65fr; }
         .leader-scans { display: none; }
     }
     </style>
@@ -325,6 +338,15 @@ COMMUNITY_NEIGHBORHOODS = {
     "Dandora, Nairobi": (-1.2484, 36.8991),
     "Mukuru, Nairobi": (-1.3158, 36.8764),
 }
+
+FRIEND_DIRECTORY = [
+    {"id": "amina", "name": "Amina Njeri", "team": "Kibera Clean Team", "icon": "A", "online": True},
+    {"id": "brian", "name": "Brian Otieno", "team": "Green Street Crew", "icon": "B", "online": False},
+    {"id": "faith", "name": "Faith Wanjiku", "team": "Mukuru Eco Stars", "icon": "F", "online": True},
+    {"id": "joseph", "name": "Joseph Kamau", "team": "Mathare Recyclers", "icon": "J", "online": True},
+    {"id": "mary", "name": "Mary Achieng", "team": "Kayole Green Club", "icon": "M", "online": False},
+    {"id": "samuel", "name": "Samuel Mwangi", "team": "Green Street Crew", "icon": "S", "online": True},
+]
 
 
 DEFAULT_DROP_OFFS = [
@@ -404,6 +426,12 @@ def drop_off_state() -> list[dict]:
     if "drop_offs" not in st.session_state:
         st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
     return st.session_state.drop_offs
+
+
+def friends_state() -> list[str]:
+    if "friends" not in st.session_state:
+        st.session_state.friends = ["amina", "brian", "faith"]
+    return st.session_state.friends
 
 
 def level_for_points(points: int) -> int:
@@ -998,15 +1026,16 @@ def render_team_leaderboard() -> None:
     player = player_state()
     player_team = "Green Street Crew"
     teams = [
-        {"name": "Mukuru Eco Stars", "points": 1280, "scans": 31},
-        {"name": "Kibera Clean Team", "points": 1125, "scans": 27},
-        {"name": "Mathare Recyclers", "points": 940, "scans": 23},
+        {"name": "Mukuru Eco Stars", "points": 1280, "scans": 31, "icon": "&#9733;"},
+        {"name": "Kibera Clean Team", "points": 1125, "scans": 27, "icon": "&#9851;"},
+        {"name": "Mathare Recyclers", "points": 940, "scans": 23, "icon": "&#8635;"},
         {
             "name": player_team,
             "points": 720 + int(player.get("points", 0)),
             "scans": 18 + int(player.get("scans", 0)),
+            "icon": "&#127793;",
         },
-        {"name": "Kayole Green Club", "points": 675, "scans": 16},
+        {"name": "Kayole Green Club", "points": 675, "scans": 16, "icon": "&#9752;"},
     ]
     teams.sort(key=lambda team: team["points"], reverse=True)
     player_rank = next(
@@ -1030,7 +1059,7 @@ def render_team_leaderboard() -> None:
         unsafe_allow_html=True,
     )
 
-    medals = {1: "1st", 2: "2nd", 3: "3rd"}
+    medals = {1: "&#129351;", 2: "&#129352;", 3: "&#129353;"}
     for rank, team in enumerate(teams, start=1):
         player_class = " is-player" if team["name"] == player_team else ""
         team_note = "Your team" if team["name"] == player_team else "Community team"
@@ -1038,6 +1067,7 @@ def render_team_leaderboard() -> None:
             f"""
             <div class="leader-row{player_class}">
                 <div class="leader-rank">{medals.get(rank, f"#{rank}")}</div>
+                <div class="team-pictogram">{team["icon"]}</div>
                 <div><strong>{team["name"]}</strong><br><span class="leader-label">{team_note}</span></div>
                 <div><span class="leader-score">{team["points"]:,}</span><br><span class="leader-label">Points</span></div>
                 <div class="leader-scans"><strong>{team["scans"]}</strong><br><span class="leader-label">Scans</span></div>
@@ -1047,6 +1077,75 @@ def render_team_leaderboard() -> None:
         )
 
     st.caption("Demo team rankings reset weekly. Your team score updates during this browser session.")
+
+
+def render_friends() -> None:
+    friend_ids = friends_state()
+    people_by_id = {person["id"]: person for person in FRIEND_DIRECTORY}
+
+    st.subheader("Friends")
+    st.write("Find other community sorters, follow their progress, and build your team together.")
+    st.markdown(
+        f"""
+        <div class="mission-grid">
+            <div class="mission-tile"><strong>&#128101; Your friends</strong><span class="muted">{len(friend_ids)} connected sorters</span></div>
+            <div class="mission-tile"><strong>&#9679; Online now</strong><span class="muted">{sum(people_by_id[friend_id]["online"] for friend_id in friend_ids)} friends active</span></div>
+            <div class="mission-tile"><strong>&#127793; Shared mission</strong><span class="muted">Cleaner neighborhoods together</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### Your friends")
+    for friend_id in list(friend_ids):
+        person = people_by_id[friend_id]
+        info_col, action_col = st.columns([5, 1])
+        with info_col:
+            status = '<span class="online-dot">&#9679; Online</span>' if person["online"] else "Offline"
+            st.markdown(
+                f"""
+                <div class="friend-card">
+                    <div class="friend-pictogram">{person["icon"]}</div>
+                    <div><strong>{person["name"]}</strong><span class="muted">{person["team"]} &middot; {status}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with action_col:
+            if st.button("Remove", key=f"remove_friend_{friend_id}", use_container_width=True):
+                friend_ids.remove(friend_id)
+                st.rerun()
+
+    st.markdown("### Find people")
+    query = st.text_input(
+        "Search by name or team",
+        placeholder="Type a name or team...",
+        key="friend_search",
+    ).strip().lower()
+    matches = [
+        person
+        for person in FRIEND_DIRECTORY
+        if person["id"] not in friend_ids
+        and (not query or query in person["name"].lower() or query in person["team"].lower())
+    ]
+    if not matches:
+        st.info("No new people match this search.")
+    for person in matches:
+        info_col, action_col = st.columns([5, 1])
+        with info_col:
+            st.markdown(
+                f"""
+                <div class="friend-card">
+                    <div class="friend-pictogram">{person["icon"]}</div>
+                    <div><strong>{person["name"]}</strong><span class="muted">{person["team"]}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with action_col:
+            if st.button("Add", key=f"add_friend_{person['id']}", type="primary", use_container_width=True):
+                friend_ids.append(person["id"])
+                st.rerun()
 
 
 def render_profile() -> None:
@@ -1091,6 +1190,7 @@ with st.sidebar:
     if st.button("Reset game progress"):
         st.session_state.player = default_player()
         st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
+        st.session_state.friends = ["amina", "brian", "faith"]
         st.session_state.pop("last_prediction", None)
         st.session_state.pop("last_demo_prediction", None)
         st.session_state.pop("selected_map_location", None)
@@ -1116,8 +1216,8 @@ except Exception as exc:
     )
     st.exception(exc)
 
-home_tab, journey_tab, upload_tab, drop_tab, leaderboard_tab, profile_tab = st.tabs(
-    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Team Leaderboard", "Profile"]
+home_tab, journey_tab, upload_tab, drop_tab, leaderboard_tab, friends_tab, profile_tab = st.tabs(
+    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Team Leaderboard", "Friends", "Profile"]
 )
 
 with home_tab:
@@ -1139,6 +1239,9 @@ with drop_tab:
 
 with leaderboard_tab:
     render_team_leaderboard()
+
+with friends_tab:
+    render_friends()
 
 with profile_tab:
     render_profile()
