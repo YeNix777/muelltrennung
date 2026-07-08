@@ -208,6 +208,18 @@ st.markdown(
     [data-testid="stAlert"] p {
         color: var(--ink) !important;
     }
+    button[data-testid="stBaseButton-primary"] {
+        background: #1f7a5b !important;
+        border-color: #1f7a5b !important;
+        color: #ffffff !important;
+    }
+    button[data-testid="stBaseButton-primary"]:hover {
+        background: #155e47 !important;
+        border-color: #155e47 !important;
+    }
+    button[data-testid="stBaseButton-primary"] p {
+        color: #ffffff !important;
+    }
     .category-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
     .category-chip {
         display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px;
