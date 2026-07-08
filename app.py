@@ -265,6 +265,32 @@ st.markdown(
     }
     .friend-card strong { display: block; }
     .online-dot { color: #178454; font-weight: 900; }
+    .credit-banner {
+        display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+        background: #143d32; color: white; border-radius: 16px; padding: 1.15rem;
+        margin: .75rem 0 1rem;
+    }
+    .credit-banner strong, .credit-banner span { color: white; }
+    .credit-total { font-size: 1.75rem; font-weight: 900; }
+    .voucher {
+        display: grid; grid-template-columns: 74px 1fr; gap: .85rem; align-items: center;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        padding: .85rem; min-height: 112px;
+    }
+    .voucher-icon {
+        width: 68px; height: 68px; display: grid; place-items: center;
+        border-radius: 12px; background: #e5f2ea; color: #155e47;
+        font-size: 2rem; border: 1px solid #c7ddd0;
+    }
+    .voucher-price {
+        display: inline-block; margin-top: .35rem; color: #155e47;
+        font-size: .82rem; font-weight: 900;
+    }
+    .wallet-code {
+        display: inline-block; font-family: monospace; font-weight: 900;
+        letter-spacing: .08em; background: #eef6f0; border: 1px dashed #72a88e;
+        padding: .32rem .5rem; border-radius: 6px;
+    }
     .profile-header {
         display: grid; grid-template-columns: .45fr 1.55fr; gap: 1rem; align-items: center;
         background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
@@ -348,6 +374,41 @@ FRIEND_DIRECTORY = [
     {"id": "samuel", "name": "Samuel Mwangi", "team": "Green Street Crew", "icon": "S", "online": True},
 ]
 
+VOUCHER_CATALOG = [
+    {
+        "id": "meal",
+        "name": "Healthy meal voucher",
+        "partner": "Community Kitchen",
+        "description": "One nutritious prepared meal.",
+        "cost": 250,
+        "icon": "&#127858;",
+    },
+    {
+        "id": "fruit",
+        "name": "Fresh food basket",
+        "partner": "Local Market",
+        "description": "A small basket of seasonal fruit and vegetables.",
+        "cost": 400,
+        "icon": "&#129382;",
+    },
+    {
+        "id": "water",
+        "name": "Water refill",
+        "partner": "Refill Station",
+        "description": "Five safe drinking-water refills.",
+        "cost": 180,
+        "icon": "&#128167;",
+    },
+    {
+        "id": "transport",
+        "name": "Local transport credit",
+        "partner": "Community Mobility",
+        "description": "Credit toward one local journey.",
+        "cost": 320,
+        "icon": "&#128652;",
+    },
+]
+
 
 DEFAULT_DROP_OFFS = [
     {
@@ -406,6 +467,7 @@ def load_trained_model():
 def default_player() -> dict:
     return {
         "points": 0,
+        "credits": 0,
         "scans": 0,
         "streak": 0,
         "last_scan_date": "",
@@ -419,6 +481,7 @@ def default_player() -> dict:
 def player_state() -> dict:
     if "player" not in st.session_state:
         st.session_state.player = default_player()
+    st.session_state.player.setdefault("credits", int(st.session_state.player.get("points", 0)))
     return st.session_state.player
 
 
@@ -432,6 +495,12 @@ def friends_state() -> list[str]:
     if "friends" not in st.session_state:
         st.session_state.friends = ["amina", "brian", "faith"]
     return st.session_state.friends
+
+
+def redeemed_vouchers_state() -> list[dict]:
+    if "redeemed_vouchers" not in st.session_state:
+        st.session_state.redeemed_vouchers = []
+    return st.session_state.redeemed_vouchers
 
 
 def level_for_points(points: int) -> int:
@@ -488,6 +557,7 @@ def award_points(class_id: int, confidence: float, image_key: str) -> dict | Non
         player["hazardous_saves"] = int(player.get("hazardous_saves", 0)) + 1
 
     player["points"] = int(player.get("points", 0)) + points
+    player["credits"] = int(player.get("credits", 0)) + points
     player["scans"] = int(player.get("scans", 0)) + 1
     player["impact"] = round(float(player.get("impact", 0.0)) + result["impact"], 2)
     known_categories.add(result["short"])
@@ -827,7 +897,7 @@ def render_result(class_id: int, confidence: float, reward: dict | None) -> None
     if reward:
         extra = " New category discovered." if reward["new_category"] else ""
         st.markdown(
-            f'<div class="reward">+{reward["points"]} points earned.{extra}</div>',
+            f'<div class="reward">+{reward["points"]} points and credits earned.{extra}</div>',
             unsafe_allow_html=True,
         )
 
@@ -1079,6 +1149,100 @@ def render_team_leaderboard() -> None:
     st.caption("Demo team rankings reset weekly. Your team score updates during this browser session.")
 
 
+def render_rewards() -> None:
+    player = player_state()
+    wallet = redeemed_vouchers_state()
+    credits = int(player.get("credits", 0))
+
+    st.subheader("Trash for Cash")
+    st.write(
+        "Scan and correctly sort waste to earn spendable credits. Exchange credits for "
+        "food and useful community rewards without losing your lifetime level points."
+    )
+    st.markdown(
+        f"""
+        <div class="credit-banner">
+            <div><strong>&#128176; Available balance</strong><br><span>Earned from {player.get("scans", 0)} scans</span></div>
+            <div class="credit-total">{credits:,} credits</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Future verified drop-off: a partner bin or collection point could confirm disposal "
+        "with a QR code and award bonus credits. The current prototype rewards the scan only."
+    )
+
+    st.markdown("### Voucher marketplace")
+    for voucher in VOUCHER_CATALOG:
+        card_col, button_col = st.columns([4, 1])
+        with card_col:
+            st.markdown(
+                f"""
+                <div class="voucher">
+                    <div class="voucher-icon">{voucher["icon"]}</div>
+                    <div>
+                        <strong>{voucher["name"]}</strong><br>
+                        <span class="muted">{voucher["partner"]} &middot; {voucher["description"]}</span><br>
+                        <span class="voucher-price">&#9733; {voucher["cost"]} credits</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with button_col:
+            can_redeem = credits >= voucher["cost"]
+            if st.button(
+                "Redeem",
+                key=f"redeem_{voucher['id']}",
+                type="primary",
+                disabled=not can_redeem,
+                use_container_width=True,
+            ):
+                player["credits"] = credits - voucher["cost"]
+                wallet.append(
+                    {
+                        **voucher,
+                        "code": f"SF-{voucher['id'].upper()}-{len(wallet) + 1:03d}",
+                        "redeemed": date.today().isoformat(),
+                        "used": False,
+                    }
+                )
+                st.rerun()
+            if not can_redeem:
+                st.caption(f"{voucher['cost'] - credits} more needed")
+
+    st.markdown("### My voucher wallet")
+    if not wallet:
+        st.caption("Redeemed vouchers will appear here with a code to show at the partner location.")
+    for index, voucher in enumerate(wallet):
+        card_col, action_col = st.columns([4, 1])
+        with card_col:
+            status = "Used" if voucher["used"] else "Ready to use"
+            st.markdown(
+                f"""
+                <div class="voucher">
+                    <div class="voucher-icon">{voucher["icon"]}</div>
+                    <div>
+                        <strong>{voucher["name"]}</strong><br>
+                        <span class="muted">{voucher["partner"]} &middot; {status}</span><br>
+                        <span class="wallet-code">{voucher["code"]}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with action_col:
+            if st.button(
+                "Use voucher",
+                key=f"use_voucher_{index}",
+                disabled=voucher["used"],
+                use_container_width=True,
+            ):
+                voucher["used"] = True
+                st.rerun()
+
+
 def render_friends() -> None:
     friend_ids = friends_state()
     people_by_id = {person["id"]: person for person in FRIEND_DIRECTORY}
@@ -1162,7 +1326,7 @@ def render_profile() -> None:
             <div class="avatar">♻️</div>
             <div>
                 <h3 style="margin:.1rem 0">Community sorter</h3>
-                <p class="muted" style="margin:.2rem 0">Level {level_for_points(points)} · {points} points · {player.get("scans", 0)} scans</p>
+                <p class="muted" style="margin:.2rem 0">Level {level_for_points(points)} · {points} points · {player.get("credits", 0)} credits · {player.get("scans", 0)} scans</p>
                 <div class="bar"><span style="width:{progress_percent(points)}%"></span></div>
                 <div class="badges">{badge_html}</div>
             </div>
@@ -1191,6 +1355,7 @@ with st.sidebar:
         st.session_state.player = default_player()
         st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
         st.session_state.friends = ["amina", "brian", "faith"]
+        st.session_state.redeemed_vouchers = []
         st.session_state.pop("last_prediction", None)
         st.session_state.pop("last_demo_prediction", None)
         st.session_state.pop("selected_map_location", None)
@@ -1216,8 +1381,8 @@ except Exception as exc:
     )
     st.exception(exc)
 
-home_tab, journey_tab, upload_tab, drop_tab, leaderboard_tab, friends_tab, profile_tab = st.tabs(
-    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Team Leaderboard", "Friends", "Profile"]
+home_tab, journey_tab, upload_tab, drop_tab, leaderboard_tab, rewards_tab, friends_tab, profile_tab = st.tabs(
+    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Team Leaderboard", "Rewards", "Friends", "Profile"]
 )
 
 with home_tab:
@@ -1239,6 +1404,9 @@ with drop_tab:
 
 with leaderboard_tab:
     render_team_leaderboard()
+
+with rewards_tab:
+    render_rewards()
 
 with friends_tab:
     render_friends()
