@@ -152,12 +152,24 @@ st.markdown(
         border: 1px dashed #93b9a5; border-radius: 18px; padding: 1rem;
         background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(238,248,242,.86));
     }
+    .scan-zone strong { color: var(--ink); }
+    .scan-zone .muted { color: #52675f; }
     .scanner-ring {
+        position: relative;
         width: 78px; height: 78px; margin: .2rem auto 1rem; border-radius: 50%;
         border: 7px solid #dfece5; border-top-color: #1f7a5b; border-right-color: #55ba82;
-        animation: spin 1.6s linear infinite;
+        animation: scanReady .65s ease-out both;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .scanner-ring::after {
+        content: ""; position: absolute; inset: 17px; border-radius: 50%;
+        background: #edf8f2; border: 1px solid #b8dfcb;
+    }
+    @keyframes scanReady {
+        from { transform: scale(.94); opacity: .55; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    div[data-baseweb="tab-list"] button p { color: var(--ink); font-weight: 800; }
+    div[role="radiogroup"] label, div[role="radiogroup"] p { color: var(--ink); }
     .category-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
     .category-chip {
         display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px;
@@ -172,8 +184,34 @@ st.markdown(
     }
     .guide-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(24,54,45,.08); }
     .guide-card strong { color: var(--ink); display: block; margin-bottom: .35rem; }
+    .mission-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1rem 0; }
+    .mission-tile {
+        background: white; border: 1px solid var(--line); border-radius: 14px;
+        padding: 1rem; min-height: 138px;
+    }
+    .mission-tile strong { color: var(--ink); display: block; margin-bottom: .4rem; }
+    .live-progress {
+        background: white; border: 1px solid var(--line); border-radius: 14px;
+        padding: .9rem; margin: .9rem 0;
+    }
+    .map-list {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: .65rem; margin-top: .8rem;
+    }
+    .map-item {
+        background: white; border: 1px solid var(--line); border-radius: 12px;
+        padding: .8rem;
+    }
+    .profile-header {
+        display: grid; grid-template-columns: .45fr 1.55fr; gap: 1rem; align-items: center;
+        background: white; border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
+    }
+    .avatar {
+        width: 104px; height: 104px; border-radius: 30px; display: grid; place-items: center;
+        background: linear-gradient(135deg, #1f7a5b, #55ba82); color: white; font-size: 2.4rem;
+        animation: bob 2.8s ease-in-out infinite;
+    }
     @media (max-width: 820px) {
-        .hero, .dashboard, .guide-grid { grid-template-columns: 1fr; }
+        .hero, .dashboard, .guide-grid, .mission-grid, .map-list, .profile-header { grid-template-columns: 1fr; }
         .stat-grid { grid-template-columns: repeat(2, 1fr); }
         .hero-main h1 { font-size: 2.15rem; }
     }
@@ -227,44 +265,47 @@ CLASS_MAPPING = {
 }
 
 
-DISTRICT_POINTS = {
-    "City Center / Dellviertel": (51.4344, 6.7623),
-    "Duisburg North": (51.4938, 6.7602),
-    "Duisburg South": (51.3658, 6.7594),
-    "Rheinhausen": (51.4017, 6.7067),
-    "Homberg / Ruhrort": (51.4538, 6.7130),
-    "Meiderich / Beeck": (51.4655, 6.7756),
+COMMUNITY_NEIGHBORHOODS = {
+    "Kibera, Nairobi": (-1.3133, 36.7892),
+    "Mathare, Nairobi": (-1.2588, 36.8574),
+    "Kayole, Nairobi": (-1.2795, 36.9120),
+    "Dandora, Nairobi": (-1.2484, 36.8991),
+    "Mukuru, Nairobi": (-1.3158, 36.8764),
 }
 
 
-RECYCLING_STATIONS = [
+DEFAULT_DROP_OFFS = [
     {
-        "name": "Recycling Center North (Demo)",
-        "lat": 51.4890,
-        "lon": 6.7630,
-        "accepts": ["Recycling Center"],
-        "note": "Suitable for hazardous waste, electronic devices, and larger recyclable items.",
+        "name": "Kibera community sorting hub",
+        "lat": -1.3133,
+        "lon": 36.7892,
+        "accepts": ["Recycling Center", "Organic Waste Bin"],
+        "note": "Demo community point for sorted recyclables and household organic waste.",
+        "added_by": "Sortify",
     },
     {
-        "name": "Recycling Center Central (Demo)",
-        "lat": 51.4327,
-        "lon": 6.7620,
+        "name": "Mathare plastics collection point",
+        "lat": -1.2588,
+        "lon": 36.8574,
         "accepts": ["Recycling Center"],
-        "note": "Central collection point for waste that is difficult to classify.",
+        "note": "Demo point for bottles, cans, paper, and clean plastic packaging.",
+        "added_by": "Sortify",
     },
     {
-        "name": "Recycling Center South (Demo)",
-        "lat": 51.3588,
-        "lon": 6.7482,
+        "name": "Kayole safe disposal desk",
+        "lat": -1.2795,
+        "lon": 36.9120,
         "accepts": ["Recycling Center"],
-        "note": "Collection point for southern districts.",
+        "note": "Demo point for items that need careful handling before collection.",
+        "added_by": "Sortify",
     },
     {
-        "name": "Organic Waste Collection Point City Center (Demo)",
-        "lat": 51.4372,
-        "lon": 6.7714,
+        "name": "Mukuru organics exchange",
+        "lat": -1.3158,
+        "lon": 36.8764,
         "accepts": ["Organic Waste Bin"],
-        "note": "For everyday organic waste, the household organic bin is usually enough.",
+        "note": "Demo point for food scraps and other organic waste streams.",
+        "added_by": "Sortify",
     },
 ]
 
@@ -304,6 +345,12 @@ def player_state() -> dict:
     if "player" not in st.session_state:
         st.session_state.player = default_player()
     return st.session_state.player
+
+
+def drop_off_state() -> list[dict]:
+    if "drop_offs" not in st.session_state:
+        st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
+    return st.session_state.drop_offs
 
 
 def level_for_points(points: int) -> int:
@@ -347,8 +394,6 @@ def badges_for_player(player: dict) -> list[str]:
 
 def award_points(class_id: int, confidence: float, image_key: str) -> dict | None:
     player = player_state()
-    if image_key in player.get("awarded_images", []):
-        return None
 
     result = CLASS_MAPPING[class_id]
     known_categories = set(player.get("categories", []))
@@ -414,8 +459,8 @@ def render_hero() -> None:
             <div class="hero-main">
                 <div class="kicker">SDG 12 WASTE SORTING APP</div>
                 <h1>Sortify</h1>
-                <p>Scan waste, learn where it belongs, and level up by making better
-                disposal decisions around Duisburg.</p>
+                <p>Scan waste, build better sorting habits, and help communities map
+                useful drop-off areas in places where waste services are still developing.</p>
                 <div class="float-icons">
                     <span class="float-icon">♻️</span>
                     <span class="float-icon">🍃</span>
@@ -479,45 +524,109 @@ def render_dashboard() -> None:
     )
 
 
-def show_nearest_station(station_type: str) -> None:
-    st.markdown('<div class="step">Nearest suitable collection point</div>', unsafe_allow_html=True)
-    st.caption(
-        "Demo feature: In a real deployment, official city locations and opening hours should be integrated here."
+def render_live_points_progress(label: str = "Current progress") -> None:
+    player = player_state()
+    points = int(player.get("points", 0))
+    st.markdown(
+        f"""
+        <div class="live-progress">
+            <div class="level-row">
+                <strong>{label}</strong>
+                <span class="muted">Level {level_for_points(points)} · {points} points</span>
+            </div>
+            <div class="bar"><span style="width:{progress_percent(points)}%"></span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    district = st.selectbox("Where are you approximately located?", list(DISTRICT_POINTS))
-    user_location = DISTRICT_POINTS[district]
-    matching_stations = [
-        station for station in RECYCLING_STATIONS if station_type in station["accepts"]
+
+def render_community_map() -> None:
+    drop_offs = drop_off_state()
+    st.markdown('<div class="step">Community drop-off map</div>', unsafe_allow_html=True)
+    st.write(
+        "This demo map is centered on Nairobi, Kenya. Community members can add useful "
+        "drop-off areas so the map grows through local knowledge."
+    )
+
+    map_rows = [
+        {
+            "lat": point["lat"],
+            "lon": point["lon"],
+            "name": point["name"],
+            "size": 120 if point.get("added_by") == "Community" else 90,
+        }
+        for point in drop_offs
     ]
+    st.map(pd.DataFrame(map_rows), latitude="lat", longitude="lon", size="size")
 
-    if not matching_stations:
-        st.info("For this category, a collection point is usually not required.")
-        return
+    st.markdown('<div class="map-list">', unsafe_allow_html=True)
+    for point in drop_offs:
+        accepts = ", ".join(point.get("accepts", []))
+        st.markdown(
+            f"""
+            <div class="map-item">
+                <strong>{point["name"]}</strong><br>
+                <span class="muted">{accepts}</span><br>
+                <span class="muted">{point["note"]}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    nearest = min(matching_stations, key=lambda station: distance_km(user_location, station))
-    dist = distance_km(user_location, nearest)
 
-    st.success(f"Nearest point: {nearest['name']} ({dist:.1f} km straight-line distance)")
-    st.write(nearest["note"])
-    st.map(
-        pd.DataFrame(
-            [
-                {"lat": user_location[0], "lon": user_location[1]},
-                {"lat": nearest["lat"], "lon": nearest["lon"]},
-            ]
-        ),
-        latitude="lat",
-        longitude="lon",
-        size=80,
+def render_add_drop_off_area() -> None:
+    st.markdown('<div class="step">Add a drop-off area</div>', unsafe_allow_html=True)
+    st.write(
+        "Add a community disposal point that other people could use. In a real version, "
+        "new points would be reviewed before becoming public."
     )
 
-    google_maps_url = (
-        "https://www.google.com/maps/search/?api=1&query="
-        + nearest["name"].replace(" ", "+")
-        + "+Duisburg"
-    )
-    st.link_button("Open route / location in Google Maps", google_maps_url)
+    with st.form("add_drop_off_form", clear_on_submit=True):
+        name = st.text_input("Place name", placeholder="Example: School gate bottle collection")
+        neighborhood = st.selectbox("Neighborhood", list(COMMUNITY_NEIGHBORHOODS))
+        category_labels = {
+            "Recyclables": "Recycling Center",
+            "Organic waste": "Organic Waste Bin",
+            "Hazardous or hard-to-sort": "Recycling Center",
+        }
+        accepted_labels = st.multiselect(
+            "What can people drop off here?",
+            list(category_labels),
+            default=["Recyclables"],
+        )
+        note = st.text_area(
+            "Community note",
+            placeholder="Opening times, landmark, contact person, or what should not be dropped here.",
+        )
+        offset = st.slider(
+            "Map marker adjustment",
+            -5,
+            5,
+            0,
+            help="Small demo offset so multiple points in one neighborhood do not sit exactly on top of each other.",
+        )
+        submitted = st.form_submit_button("Add to community map", use_container_width=True)
+
+    if submitted:
+        if not name.strip():
+            st.error("Please add a place name.")
+            return
+        lat, lon = COMMUNITY_NEIGHBORHOODS[neighborhood]
+        drop_off_state().append(
+            {
+                "name": name.strip(),
+                "lat": lat + offset * 0.0015,
+                "lon": lon + offset * 0.0015,
+                "accepts": [category_labels[label] for label in accepted_labels] or ["Recycling Center"],
+                "note": note.strip() or "Community-added drop-off area. Details still need verification.",
+                "added_by": "Community",
+            }
+        )
+        st.success("Added to the community map for this session.")
+
+    render_community_map()
 
 
 def render_result(class_id: int, confidence: float, reward: dict | None) -> None:
@@ -554,7 +663,7 @@ def render_result(class_id: int, confidence: float, reward: dict | None) -> None
         st.warning(
             "The AI is not very confident. Please check the result or take a new photo with better lighting."
         )
-    show_nearest_station(result["station_type"])
+    st.info("Open the Add Drop-Off Area tab to find or add a community disposal point.")
 
 
 def render_scanner(model) -> None:
@@ -598,6 +707,7 @@ def render_scanner(model) -> None:
 
     prediction = st.session_state.get("last_prediction")
     if prediction and prediction["image_key"] == image_key:
+        render_live_points_progress("Points after this scan")
         render_result(
             prediction["class_id"],
             prediction["confidence"],
@@ -640,6 +750,7 @@ def render_demo_scanner(reason: str) -> None:
 
     prediction = st.session_state.get("last_demo_prediction")
     if prediction:
+        render_live_points_progress("Points after this scan")
         render_result(
             prediction["class_id"],
             prediction["confidence"],
@@ -682,7 +793,74 @@ def render_guide() -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-render_hero()
+def render_home() -> None:
+    render_hero()
+    st.subheader("Our mission")
+    st.write(
+        "Sortify is designed as a learning app for cleaner communities: people scan waste, "
+        "earn progress, and help map practical disposal points that are easy for neighbors to find."
+    )
+    st.markdown(
+        """
+        <div class="mission-grid">
+            <div class="mission-tile">
+                <strong>🔍 Learn by scanning</strong>
+                <span class="muted">Every scan turns sorting guidance into a small action and a reward.</span>
+            </div>
+            <div class="mission-tile">
+                <strong>🗺️ Build local knowledge</strong>
+                <span class="muted">Community drop-off areas can be added by people who know the neighborhood.</span>
+            </div>
+            <div class="mission-tile">
+                <strong>🌍 Support SDG 12</strong>
+                <span class="muted">The goal is responsible consumption, cleaner streets, and better material recovery.</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    render_community_map()
+
+
+def render_journey() -> None:
+    st.subheader("Journey, points, and rewards")
+    render_dashboard()
+    render_quests()
+    render_guide()
+
+
+def render_profile() -> None:
+    player = player_state()
+    points = int(player.get("points", 0))
+    badges = badges_for_player(player)
+    badge_html = "".join(
+        f'<span class="badge">{badge}</span>' for badge in badges
+    ) or '<span class="badge">🚀 Ready to start</span>'
+    st.subheader("Profile")
+    st.markdown(
+        f"""
+        <div class="profile-header">
+            <div class="avatar">♻️</div>
+            <div>
+                <h3 style="margin:.1rem 0">Community sorter</h3>
+                <p class="muted" style="margin:.2rem 0">Level {level_for_points(points)} · {points} points · {player.get("scans", 0)} scans</p>
+                <div class="bar"><span style="width:{progress_percent(points)}%"></span></div>
+                <div class="badges">{badge_html}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"""
+        <div class="mission-grid">
+            <div class="mission-tile"><strong>🔥 Streak</strong><span class="muted">{player.get("streak", 0)} active day(s)</span></div>
+            <div class="mission-tile"><strong>🏷️ Categories</strong><span class="muted">{len(player.get("categories", []))} discovered</span></div>
+            <div class="mission-tile"><strong>🗺️ Map points</strong><span class="muted">{len(drop_off_state())} community drop-off areas</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 with st.sidebar:
     st.header("System status")
@@ -692,7 +870,9 @@ with st.sidebar:
         st.error("AI model file is missing.")
     if st.button("Reset game progress"):
         st.session_state.player = default_player()
+        st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
         st.session_state.pop("last_prediction", None)
+        st.session_state.pop("last_demo_prediction", None)
         st.rerun()
     st.caption("Progress is stored only in this browser session.")
 
@@ -715,11 +895,17 @@ except Exception as exc:
     )
     st.exception(exc)
 
-render_dashboard()
+home_tab, journey_tab, upload_tab, drop_tab, profile_tab = st.tabs(
+    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Profile"]
+)
 
-scan_tab, quests_tab, guide_tab = st.tabs(["Scan", "Quests", "Guide"])
+with home_tab:
+    render_home()
 
-with scan_tab:
+with journey_tab:
+    render_journey()
+
+with upload_tab:
     if model is not None:
         render_scanner(model)
     elif TORCH_IMPORT_ERROR is not None:
@@ -727,8 +913,8 @@ with scan_tab:
     else:
         render_demo_scanner("The model file is missing or could not be loaded.")
 
-with quests_tab:
-    render_quests()
+with drop_tab:
+    render_add_drop_off_area()
 
-with guide_tab:
-    render_guide()
+with profile_tab:
+    render_profile()
