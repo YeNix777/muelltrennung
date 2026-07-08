@@ -37,19 +37,27 @@ st.markdown(
     <style>
     :root {
         --ink: #17352d;
-        --muted: #607169;
-        --line: #dfe7e1;
-        --paper: #f6f4ec;
+        --muted: #3f554d;
+        --line: #cbd9d1;
+        --paper: #eef3ec;
         --green: #1f7a5b;
+        --panel: #ffffff;
     }
     .stApp {
         background:
-            radial-gradient(circle at 82% 4%, rgba(31,122,91,.14), transparent 26rem),
-            linear-gradient(180deg, #fbfaf5 0%, var(--paper) 100%);
+            radial-gradient(circle at 82% 4%, rgba(31,122,91,.16), transparent 24rem),
+            linear-gradient(180deg, #f6faf5 0%, var(--paper) 100%);
+        color: var(--ink);
     }
     [data-testid="stHeader"] { background: transparent; }
     .block-container { max-width: 1120px; padding-top: 1.5rem; padding-bottom: 4rem; }
-    h1, h2, h3 { color: var(--ink); letter-spacing: 0; }
+    h1, h2, h3, h4, h5, h6, p, li, label, span { color: var(--ink); letter-spacing: 0; }
+    [data-testid="stMarkdownContainer"], [data-testid="stMarkdownContainer"] p {
+        color: var(--ink);
+    }
+    [data-testid="stCaptionContainer"], .stCaptionContainer, small {
+        color: var(--muted) !important;
+    }
     .hero {
         display: grid; grid-template-columns: 1.35fr .65fr; gap: 1rem; align-items: stretch;
         margin-bottom: 1rem;
@@ -80,7 +88,7 @@ st.markdown(
         50% { transform: translateY(-5px) rotate(2deg); }
     }
     .mission-card, .panel {
-        background: rgba(255,255,255,.9); border: 1px solid var(--line);
+        background: var(--panel); border: 1px solid var(--line);
         border-radius: 16px; padding: 1rem; box-shadow: 0 8px 24px rgba(24,54,45,.06);
     }
     .mission-card { display: flex; flex-direction: column; justify-content: center; }
@@ -91,8 +99,8 @@ st.markdown(
     }
     .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-top: .75rem; }
     .stat {
-        background: #f5f7f4; border-radius: 12px; padding: .75rem; min-height: 76px;
-        border: 1px solid #e7ece8;
+        background: #eef6f0; border-radius: 12px; padding: .75rem; min-height: 76px;
+        border: 1px solid #d5e3d9;
     }
     .stat strong { display: block; color: var(--ink); font-size: 1.35rem; line-height: 1.15; }
     .stat span { color: var(--muted); font-size: .75rem; font-weight: 760; }
@@ -130,9 +138,10 @@ st.markdown(
         100% { transform: scale(1); box-shadow: 0 0 0 rgba(31,122,91,0); }
     }
     .result {
-        background: white; border: 1px solid var(--line); border-radius: 16px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
         padding: 1rem; margin-top: .75rem;
     }
+    .result p, .result strong { color: var(--ink); }
     .result-head {
         display: flex; justify-content: space-between; gap: 1rem; align-items: center;
         border-radius: 12px; color: white; padding: .9rem 1rem; margin-bottom: .8rem;
@@ -150,7 +159,7 @@ st.markdown(
     }
     .scan-zone {
         border: 1px dashed #93b9a5; border-radius: 18px; padding: 1rem;
-        background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(238,248,242,.86));
+        background: linear-gradient(180deg, #ffffff, #eaf5ee);
     }
     .scan-zone strong { color: var(--ink); }
     .scan-zone .muted { color: #52675f; }
@@ -168,17 +177,42 @@ st.markdown(
         from { transform: scale(.94); opacity: .55; }
         to { transform: scale(1); opacity: 1; }
     }
-    div[data-baseweb="tab-list"] button p { color: var(--ink); font-weight: 800; }
-    div[role="radiogroup"] label, div[role="radiogroup"] p { color: var(--ink); }
+    div[data-baseweb="tab-list"] { background: rgba(255,255,255,.76); border-radius: 14px; padding: .25rem; }
+    div[data-baseweb="tab-list"] button p { color: var(--ink) !important; font-weight: 850; }
+    div[data-baseweb="tab-list"] button[aria-selected="true"] p { color: #0f5f46 !important; }
+    div[role="radiogroup"] label, div[role="radiogroup"] p, div[role="radiogroup"] span {
+        color: var(--ink) !important;
+    }
+    [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] p {
+        color: var(--ink) !important; font-weight: 760;
+    }
+    [data-testid="stSelectbox"] label, [data-testid="stTextInput"] label,
+    [data-testid="stTextArea"] label, [data-testid="stFileUploader"] label,
+    [data-testid="stSlider"] label {
+        color: var(--ink) !important;
+    }
+    input, textarea, [data-baseweb="select"] {
+        color: var(--ink) !important;
+        background-color: #ffffff !important;
+    }
+    [data-testid="stInfo"], [data-testid="stWarning"], [data-testid="stSuccess"], [data-testid="stAlert"] {
+        color: var(--ink) !important;
+        background: #ffffff !important;
+        border: 1px solid var(--line) !important;
+    }
+    [data-testid="stInfo"] p, [data-testid="stWarning"] p, [data-testid="stSuccess"] p,
+    [data-testid="stAlert"] p {
+        color: var(--ink) !important;
+    }
     .category-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
     .category-chip {
         display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px;
-        background: #f5f7f4; border: 1px solid #e1e8e2; padding: .4rem .65rem;
+        background: #eef6f0; border: 1px solid #d5e3d9; padding: .4rem .65rem;
         font-size: .78rem; font-weight: 800; color: var(--ink);
     }
     .guide-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
     .guide-card {
-        background: white; border: 1px solid var(--line); border-radius: 14px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
         padding: .9rem; min-height: 142px;
         transition: transform .18s ease, box-shadow .18s ease;
     }
@@ -186,7 +220,7 @@ st.markdown(
     .guide-card strong { color: var(--ink); display: block; margin-bottom: .35rem; }
     .mission-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1rem 0; }
     .mission-tile {
-        background: white; border: 1px solid var(--line); border-radius: 14px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
         padding: 1rem; min-height: 138px;
     }
     .mission-tile strong { color: var(--ink); display: block; margin-bottom: .4rem; }
@@ -198,12 +232,12 @@ st.markdown(
         display: grid; grid-template-columns: repeat(2, 1fr); gap: .65rem; margin-top: .8rem;
     }
     .map-item {
-        background: white; border: 1px solid var(--line); border-radius: 12px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
         padding: .8rem;
     }
     .profile-header {
         display: grid; grid-template-columns: .45fr 1.55fr; gap: 1rem; align-items: center;
-        background: white; border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
     }
     .avatar {
         width: 104px; height: 104px; border-radius: 30px; display: grid; place-items: center;
@@ -643,7 +677,7 @@ def render_result(class_id: int, confidence: float, reward: dict | None) -> None
         <div class="result">
             <div class="result-head" style="background:{result["color"]}">
                 <div>
-                    <span style="font-size:.75rem;font-weight:850;text-transform:uppercase;opacity:.82">Result</span>
+                    <span style="font-size:.75rem;font-weight:850;text-transform:uppercase;color:#eef8f2">Result</span>
                     <h2>{result["name"]}</h2>
                 </div>
                 <div class="result-icon">{result["icon"]}</div>
