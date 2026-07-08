@@ -239,6 +239,19 @@ st.markdown(
         background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
         padding: .8rem;
     }
+    .leader-row {
+        display: grid; grid-template-columns: 54px 1.4fr .7fr .7fr;
+        gap: .75rem; align-items: center; background: var(--panel);
+        border: 1px solid var(--line); border-radius: 12px; padding: .8rem;
+        margin-bottom: .55rem;
+    }
+    .leader-row.is-player {
+        border: 2px solid #1f7a5b; background: #edf8f2;
+        box-shadow: 0 8px 20px rgba(31,122,91,.1);
+    }
+    .leader-rank { font-size: 1.25rem; font-weight: 900; text-align: center; }
+    .leader-score { font-weight: 900; color: #155e47; }
+    .leader-label { color: var(--muted); font-size: .72rem; font-weight: 750; }
     .profile-header {
         display: grid; grid-template-columns: .45fr 1.55fr; gap: 1rem; align-items: center;
         background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem;
@@ -252,6 +265,8 @@ st.markdown(
         .hero, .dashboard, .guide-grid, .mission-grid, .map-list, .profile-header { grid-template-columns: 1fr; }
         .stat-grid { grid-template-columns: repeat(2, 1fr); }
         .hero-main h1 { font-size: 2.15rem; }
+        .leader-row { grid-template-columns: 42px 1fr .65fr; }
+        .leader-scans { display: none; }
     }
     </style>
     """,
@@ -979,6 +994,61 @@ def render_journey() -> None:
     render_guide()
 
 
+def render_team_leaderboard() -> None:
+    player = player_state()
+    player_team = "Green Street Crew"
+    teams = [
+        {"name": "Mukuru Eco Stars", "points": 1280, "scans": 31},
+        {"name": "Kibera Clean Team", "points": 1125, "scans": 27},
+        {"name": "Mathare Recyclers", "points": 940, "scans": 23},
+        {
+            "name": player_team,
+            "points": 720 + int(player.get("points", 0)),
+            "scans": 18 + int(player.get("scans", 0)),
+        },
+        {"name": "Kayole Green Club", "points": 675, "scans": 16},
+    ]
+    teams.sort(key=lambda team: team["points"], reverse=True)
+    player_rank = next(
+        index for index, team in enumerate(teams, start=1) if team["name"] == player_team
+    )
+    player_score = next(team["points"] for team in teams if team["name"] == player_team)
+
+    st.subheader("Team leaderboard")
+    st.write(
+        "Every scan adds to your team score. Work together, discover more waste categories, "
+        "and climb the weekly community ranking."
+    )
+    st.markdown(
+        f"""
+        <div class="mission-grid">
+            <div class="mission-tile"><strong>Your team</strong><span class="muted">{player_team}</span></div>
+            <div class="mission-tile"><strong>Current rank</strong><span class="muted">#{player_rank} of {len(teams)} teams</span></div>
+            <div class="mission-tile"><strong>Team score</strong><span class="muted">{player_score:,} weekly points</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    medals = {1: "1st", 2: "2nd", 3: "3rd"}
+    for rank, team in enumerate(teams, start=1):
+        player_class = " is-player" if team["name"] == player_team else ""
+        team_note = "Your team" if team["name"] == player_team else "Community team"
+        st.markdown(
+            f"""
+            <div class="leader-row{player_class}">
+                <div class="leader-rank">{medals.get(rank, f"#{rank}")}</div>
+                <div><strong>{team["name"]}</strong><br><span class="leader-label">{team_note}</span></div>
+                <div><span class="leader-score">{team["points"]:,}</span><br><span class="leader-label">Points</span></div>
+                <div class="leader-scans"><strong>{team["scans"]}</strong><br><span class="leader-label">Scans</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.caption("Demo team rankings reset weekly. Your team score updates during this browser session.")
+
+
 def render_profile() -> None:
     player = player_state()
     points = int(player.get("points", 0))
@@ -1046,8 +1116,8 @@ except Exception as exc:
     )
     st.exception(exc)
 
-home_tab, journey_tab, upload_tab, drop_tab, profile_tab = st.tabs(
-    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Profile"]
+home_tab, journey_tab, upload_tab, drop_tab, leaderboard_tab, profile_tab = st.tabs(
+    ["Home", "Journey", "Upload Picture", "Add Drop-Off Area", "Team Leaderboard", "Profile"]
 )
 
 with home_tab:
@@ -1066,6 +1136,9 @@ with upload_tab:
 
 with drop_tab:
     render_add_drop_off_area()
+
+with leaderboard_tab:
+    render_team_leaderboard()
 
 with profile_tab:
     render_profile()
