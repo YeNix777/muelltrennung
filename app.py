@@ -6,6 +6,7 @@ import os
 from datetime import date, timedelta
 
 import pandas as pd
+import pydeck as pdk
 import streamlit as st
 from PIL import Image
 
@@ -575,6 +576,71 @@ def render_live_points_progress(label: str = "Current progress") -> None:
     )
 
 
+def map_dataframe(points: list[dict], preview: dict | None = None) -> pd.DataFrame:
+    rows = []
+    for point in points:
+        rows.append(
+            {
+                "lat": point["lat"],
+                "lon": point["lon"],
+                "name": point["name"],
+                "pin": "📍" if point.get("added_by") == "Community" else "♻️",
+                "color": [34, 123, 88, 220],
+                "size": 28 if point.get("added_by") == "Community" else 23,
+            }
+        )
+    if preview:
+        rows.append(
+            {
+                "lat": preview["lat"],
+                "lon": preview["lon"],
+                "name": preview["name"],
+                "pin": "📌",
+                "color": [210, 82, 67, 240],
+                "size": 34,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def render_pin_map(points: list[dict], preview: dict | None = None, zoom: float = 12.2) -> None:
+    data = map_dataframe(points, preview)
+    text_layer = pdk.Layer(
+        "TextLayer",
+        data,
+        get_position="[lon, lat]",
+        get_text="pin",
+        get_size="size",
+        get_color="color",
+        get_alignment_baseline="'bottom'",
+        pickable=True,
+    )
+    label_layer = pdk.Layer(
+        "TextLayer",
+        data,
+        get_position="[lon, lat]",
+        get_text="name",
+        get_size=13,
+        get_color=[23, 53, 45, 230],
+        get_pixel_offset=[0, 14],
+        pickable=True,
+    )
+    st.pydeck_chart(
+        pdk.Deck(
+            map_style="light",
+            initial_view_state=pdk.ViewState(
+                latitude=-1.2921,
+                longitude=36.8219,
+                zoom=zoom,
+                pitch=0,
+            ),
+            layers=[text_layer, label_layer],
+            tooltip={"text": "{name}"},
+        ),
+        use_container_width=True,
+    )
+
+
 def render_community_map() -> None:
     drop_offs = drop_off_state()
     st.markdown('<div class="step">Community drop-off map</div>', unsafe_allow_html=True)
@@ -583,16 +649,7 @@ def render_community_map() -> None:
         "drop-off areas so the map grows through local knowledge."
     )
 
-    map_rows = [
-        {
-            "lat": point["lat"],
-            "lon": point["lon"],
-            "name": point["name"],
-            "size": 120 if point.get("added_by") == "Community" else 90,
-        }
-        for point in drop_offs
-    ]
-    st.map(pd.DataFrame(map_rows), latitude="lat", longitude="lon", size="size")
+    render_pin_map(drop_offs)
 
     st.markdown('<div class="map-list">', unsafe_allow_html=True)
     for point in drop_offs:
@@ -616,10 +673,34 @@ def render_add_drop_off_area() -> None:
         "Add a community disposal point that other people could use. In a real version, "
         "new points would be reviewed before becoming public."
     )
+    st.caption(
+        "Map-click placement needs a dedicated map component. For this version, choose an area "
+        "and adjust the marker; the red pin shows where your new drop-off point will be added."
+    )
+
+    preview_neighborhood = st.selectbox(
+        "Choose area on the map",
+        list(COMMUNITY_NEIGHBORHOODS),
+        key="preview_neighborhood",
+    )
+    preview_offset = st.slider(
+        "Move preview marker",
+        -5,
+        5,
+        0,
+        key="preview_offset",
+        help="Small adjustment so the marker can be placed near the selected area.",
+    )
+    preview_lat, preview_lon = COMMUNITY_NEIGHBORHOODS[preview_neighborhood]
+    preview_point = {
+        "name": "New drop-off preview",
+        "lat": preview_lat + preview_offset * 0.0015,
+        "lon": preview_lon + preview_offset * 0.0015,
+    }
+    render_pin_map(drop_off_state(), preview=preview_point, zoom=13.0)
 
     with st.form("add_drop_off_form", clear_on_submit=True):
         name = st.text_input("Place name", placeholder="Example: School gate bottle collection")
-        neighborhood = st.selectbox("Neighborhood", list(COMMUNITY_NEIGHBORHOODS))
         category_labels = {
             "Recyclables": "Recycling Center",
             "Organic waste": "Organic Waste Bin",
@@ -634,25 +715,17 @@ def render_add_drop_off_area() -> None:
             "Community note",
             placeholder="Opening times, landmark, contact person, or what should not be dropped here.",
         )
-        offset = st.slider(
-            "Map marker adjustment",
-            -5,
-            5,
-            0,
-            help="Small demo offset so multiple points in one neighborhood do not sit exactly on top of each other.",
-        )
         submitted = st.form_submit_button("Add to community map", use_container_width=True)
 
     if submitted:
         if not name.strip():
             st.error("Please add a place name.")
             return
-        lat, lon = COMMUNITY_NEIGHBORHOODS[neighborhood]
         drop_off_state().append(
             {
                 "name": name.strip(),
-                "lat": lat + offset * 0.0015,
-                "lon": lon + offset * 0.0015,
+                "lat": preview_point["lat"],
+                "lon": preview_point["lon"],
                 "accepts": [category_labels[label] for label in accepted_labels] or ["Recycling Center"],
                 "note": note.strip() or "Community-added drop-off area. Details still need verification.",
                 "added_by": "Community",
