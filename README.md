@@ -8,9 +8,12 @@ small game loop.
 
 - Camera or file upload waste scanner
 - Four waste categories: hazardous, residual, organic, recyclable
-- Disposal guidance and demo collection-point map for Duisburg
+- Home, journey, upload, community map, and profile tabs
+- Disposal guidance and a demo community drop-off map centered on Nairobi, Kenya
 - Points, levels, progress bar, streaks, and badges
+- Points bar moves after every scan action
 - Daily challenge to discover three waste categories
+- Community form for adding local disposal or drop-off areas
 - Quest log and sorting guide
 - Animated icons, reward feedback, and demo scan mode
 - Session-only progress with a reset button
