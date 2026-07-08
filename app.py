@@ -8,7 +8,10 @@ from datetime import date, timedelta
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
+import folium
+from folium.plugins import LocateControl
 from PIL import Image
+from streamlit_folium import st_folium
 
 try:
     import torch
@@ -670,34 +673,70 @@ def render_community_map() -> None:
 def render_add_drop_off_area() -> None:
     st.markdown('<div class="step">Add a drop-off area</div>', unsafe_allow_html=True)
     st.write(
-        "Add a community disposal point that other people could use. In a real version, "
-        "new points would be reviewed before becoming public."
-    )
-    st.caption(
-        "Map-click placement needs a dedicated map component. For this version, choose an area "
-        "and adjust the marker; the red pin shows where your new drop-off point will be added."
+        "Click the exact location on the map. A red preview pin will appear there, then "
+        "you can add its details for the community."
     )
 
-    preview_neighborhood = st.selectbox(
-        "Choose area on the map",
-        list(COMMUNITY_NEIGHBORHOODS),
-        key="preview_neighborhood",
+    selected_location = st.session_state.get("selected_map_location")
+    center = (
+        [selected_location["lat"], selected_location["lon"]]
+        if selected_location
+        else [-1.2921, 36.8219]
     )
-    preview_offset = st.slider(
-        "Move preview marker",
-        -5,
-        5,
-        0,
-        key="preview_offset",
-        help="Small adjustment so the marker can be placed near the selected area.",
+    community_map = folium.Map(
+        location=center,
+        zoom_start=14,
+        tiles="CartoDB positron",
+        control_scale=True,
     )
-    preview_lat, preview_lon = COMMUNITY_NEIGHBORHOODS[preview_neighborhood]
-    preview_point = {
-        "name": "New drop-off preview",
-        "lat": preview_lat + preview_offset * 0.0015,
-        "lon": preview_lon + preview_offset * 0.0015,
-    }
-    render_pin_map(drop_off_state(), preview=preview_point, zoom=13.0)
+    LocateControl(
+        auto_start=False,
+        strings={"title": "Use my location"},
+    ).add_to(community_map)
+
+    for point in drop_off_state():
+        folium.Marker(
+            [point["lat"], point["lon"]],
+            tooltip=point["name"],
+            popup=folium.Popup(
+                f"<strong>{point['name']}</strong><br>{point['note']}",
+                max_width=280,
+            ),
+            icon=folium.Icon(color="green", icon="recycle", prefix="fa"),
+        ).add_to(community_map)
+
+    if selected_location:
+        folium.Marker(
+            [selected_location["lat"], selected_location["lon"]],
+            tooltip="New drop-off point",
+            icon=folium.Icon(color="red", icon="map-marker", prefix="fa"),
+        ).add_to(community_map)
+
+    map_event = st_folium(
+        community_map,
+        height=520,
+        use_container_width=True,
+        returned_objects=["last_clicked"],
+        key="drop_off_picker",
+    )
+    clicked = map_event.get("last_clicked") if map_event else None
+    if clicked:
+        clicked_location = {
+            "lat": float(clicked["lat"]),
+            "lon": float(clicked["lng"]),
+        }
+        if clicked_location != selected_location:
+            st.session_state.selected_map_location = clicked_location
+            st.rerun()
+
+    selected_location = st.session_state.get("selected_map_location")
+    if selected_location:
+        st.success(
+            f"Location selected: {selected_location['lat']:.5f}, "
+            f"{selected_location['lon']:.5f}"
+        )
+    else:
+        st.info("Click anywhere on the map to place the new drop-off marker.")
 
     with st.form("add_drop_off_form", clear_on_submit=True):
         name = st.text_input("Place name", placeholder="Example: School gate bottle collection")
@@ -718,19 +757,23 @@ def render_add_drop_off_area() -> None:
         submitted = st.form_submit_button("Add to community map", use_container_width=True)
 
     if submitted:
+        if not selected_location:
+            st.error("Please click the map to choose a location first.")
+            return
         if not name.strip():
             st.error("Please add a place name.")
             return
         drop_off_state().append(
             {
                 "name": name.strip(),
-                "lat": preview_point["lat"],
-                "lon": preview_point["lon"],
+                "lat": selected_location["lat"],
+                "lon": selected_location["lon"],
                 "accepts": [category_labels[label] for label in accepted_labels] or ["Recycling Center"],
                 "note": note.strip() or "Community-added drop-off area. Details still need verification.",
                 "added_by": "Community",
             }
         )
+        st.session_state.pop("selected_map_location", None)
         st.success("Added to the community map for this session.")
 
     render_community_map()
@@ -980,6 +1023,7 @@ with st.sidebar:
         st.session_state.drop_offs = [dict(point) for point in DEFAULT_DROP_OFFS]
         st.session_state.pop("last_prediction", None)
         st.session_state.pop("last_demo_prediction", None)
+        st.session_state.pop("selected_map_location", None)
         st.rerun()
     st.caption("Progress is stored only in this browser session.")
 
