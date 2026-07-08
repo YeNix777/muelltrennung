@@ -4,3 +4,6 @@ torch
 torchvision
 pillow
 pandas
+pydeck
+folium
+streamlit-folium
